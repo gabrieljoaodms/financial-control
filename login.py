@@ -13,7 +13,7 @@ from main import main
 import streamlit_authenticator as stauth
 
 load_dotenv()
-db = create_engine(os.getenv("RENDER_STRING"))
+db = create_engine(os.getenv("DB_STRING"))
 
 headerSection = st.container()
 mainSection = st.container()
