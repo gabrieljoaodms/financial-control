@@ -7,4 +7,4 @@ SQLAlchemy==1.4.32
 streamlit>=1.20.0
 streamlit_authenticator==0.2.1
 psycopg2
-altair
+altair==4.2.2
