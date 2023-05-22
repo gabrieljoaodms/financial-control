@@ -4,16 +4,14 @@ from dotenv import load_dotenv
 from log import logger
 import os
 from sqlalchemy import create_engine
-import keyboard
-import threading
-import time
-import pickle
 from pathlib import Path
 from main import main
 import streamlit_authenticator as stauth
 
+
+
 load_dotenv()
-db = create_engine(os.getenv("DB_STRING"))
+db = create_engine(os.getenv("DL_STRING"))
 
 headerSection = st.container()
 mainSection = st.container()
@@ -41,6 +39,7 @@ def pagina_login():
             senha = st.text_input('Senha',type='password')
             st.button('login', on_click=click_login, args=(usuario, senha))
             logger.info('pagina de login')
+    return usuario
 
 with headerSection:
     st.title("Finanças João e Carol")

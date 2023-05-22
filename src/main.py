@@ -6,6 +6,51 @@ from dotenv import load_dotenv
 import os
 from sqlalchemy import create_engine
 from obter_categoria import obter_categoria
+import matplotlib.pyplot as plt
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.options import Options
+
+
+def obter_saldo():
+
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+
+    url_1 = "https://app.kinvo.com.br/login"
+    driver.get(url_1)
+ 
+    username_input = driver.find_element("name","email")
+    password_input = driver.find_element("name","password")
+    username_input.send_keys(os.getenv("EMAIL"))
+    password_input.send_keys(os.getenv("PASS"))
+    button = WebDriverWait(driver, 30).until(
+            EC.visibility_of_element_located(
+        (By.XPATH, '//button[.//div[text()="Entrar"]]')
+    )
+    )
+    button.click()
+
+    try:
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CLASS_NAME, "sc-gbRWpc bXjJNa")))
+    except:
+        pass
+
+    html = driver.page_source
+
+    soup = BeautifulSoup(html, 'html.parser')
+    html_saldo = list(soup.find_all('h2', class_='sc-gbRWpc bXjJNa'))[0].text
+    saldo = float(html_saldo.split("\xa0")[1].replace('.','').replace(',','.'))
+    print(saldo)
+    
+    return saldo
+
 
 def main():
     st.sidebar.title('Menu')
@@ -23,7 +68,7 @@ def main():
     investimento_categoria = ['Casamento', 'Reserva de Emergência']
 
     load_dotenv()
-    db = create_engine(os.getenv("DB_STRING"))
+    db = create_engine(os.getenv("DL_STRING"))
 
     if paginaSelecionada == 'Adicionar Receita':
         with st.form(key="Receita"):
@@ -63,13 +108,13 @@ def main():
             nova_categoria = st.text_input(emoji.emojize('Nova categoria :file_cabinet:'))
             input_button_submit = st.form_submit_button('Enviar')
             st.write('Categorias já existentes:')
-            st.write(pd.read_sql('categorias', con = db))
+            st.write(pd.read_sql('categoria_saida', con = db))
 
         if input_button_submit:
-            df = pd.DataFrame([ nova_categoria], columns = ['categoria'])
-            df.to_sql('categorias', con = db, index = False, if_exists = 'append')
+            df = pd.DataFrame([nova_categoria], columns = ['categoria'])
+            df.to_sql('categoria_saida', con = db, index = False, if_exists = 'append')
             db.dispose()
-            st.write(pd.read_sql('categorias', con = db))
+            st.write(pd.read_sql('categoria_saida', con = db))
 
     elif paginaSelecionada == 'Aportes':
         with st.form(key="Aportes"):
@@ -87,17 +132,44 @@ def main():
 
     elif paginaSelecionada == 'Saldo Investimentos':
         with st.form(key="Orçamento"):      
-            categoria_investimento = st.selectbox(emoji.emojize("Categoria :file_cabinet:"), investimento_categoria)
-            saldo = st.number_input(emoji.emojize('Valor :money-mouth_face:'), min_value = 0.00)
             data = st.date_input(emoji.emojize('Dia :calendar:'))
             input_button_submit = st.form_submit_button('Enviar')
 
         if input_button_submit:
-            df = pd.DataFrame([[categoria_investimento, saldo, data]], columns = ['categoria_investimento', 'saldo', 'data'])
+            saldo = obter_saldo()
+
+            tabela_db = pd.read_sql('saldo_investimentos', con = db)
+            datas = list(tabela_db['data'])
+            if data in datas:
+                db.execute(f"DELETE FROM saldo_investimentos WHERE data = '{data}'")
+            df = pd.DataFrame([[data, saldo]], columns = ['data', 'saldo'])
             df.to_sql('saldo_investimentos', con = db, index = False, if_exists = 'append')
             db.dispose()
-            st.write(pd.read_sql('saldo_investimentos', con = db))
 
+            tabela_db_atualizada = pd.read_sql('saldo_investimentos', con = db)
+
+            kpi1, kpi2 = st.columns(2)
+
+            # fill in those three columns with respective metrics or KPIs
+            kpi1.metric(
+                label= emoji.emojize('Saldo Investimentos :money-mouth_face:'),
+                value=round(saldo),
+                delta=round(saldo) - 0,
+            )
+
+            kpi2.metric(
+                label= emoji.emojize('Última Atualização :calendar:'),
+                value=f"{data}"
+            )
+
+            fig, ax = plt.subplots()
+            ax.plot(tabela_db_atualizada['data'], tabela_db_atualizada['saldo'])
+            ax.set_xlabel('Data')
+            ax.set_ylabel('Saldo')
+
+            # Exibir o gráfico no Streamlit
+            st.pyplot(fig)
+            st.dataframe(tabela_db_atualizada)
 
     elif paginaSelecionada == 'Ajustar Orçamento':
         with st.form(key="Orçamento"):

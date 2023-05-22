@@ -6,10 +6,10 @@ import os
 from sqlalchemy import create_engine
 
 load_dotenv()
-db = create_engine(os.getenv("DB_STRING"))
+db = create_engine(os.getenv("DL_STRING"))
 
 def obter_categoria():
-    categorias = pd.read_sql('categorias', con = db)
+    categorias = pd.read_sql('categoria_saida', con = db)
     lista_categorias = list(categorias['categoria'])
     return lista_categorias
 
