@@ -136,18 +136,11 @@ def main():
             input_button_submit = st.form_submit_button('Enviar')
 
         if input_button_submit:
-            saldo = obter_saldo()
 
             tabela_db = pd.read_sql('saldo_investimentos', con = db)
-            datas = list(tabela_db['data'])
-            if data in datas:
-                db.execute(f"DELETE FROM saldo_investimentos WHERE data = '{data}'")
-            df = pd.DataFrame([[data, saldo]], columns = ['data', 'saldo'])
-            df.to_sql('saldo_investimentos', con = db, index = False, if_exists = 'append')
-            db.dispose()
+            tabela_db = tabela_db.sort_values('data', ascending=False)
 
-            tabela_db_atualizada = pd.read_sql('saldo_investimentos', con = db)
-
+            saldo = tabela_db.loc[tabela_db.index[0], 'saldo']
             kpi1, kpi2 = st.columns(2)
 
             # fill in those three columns with respective metrics or KPIs
@@ -163,13 +156,13 @@ def main():
             )
 
             fig, ax = plt.subplots()
-            ax.plot(tabela_db_atualizada['data'], tabela_db_atualizada['saldo'])
+            ax.plot(tabela_db['data'], tabela_db['saldo'])
             ax.set_xlabel('Data')
             ax.set_ylabel('Saldo')
 
             # Exibir o gráfico no Streamlit
             st.pyplot(fig)
-            st.dataframe(tabela_db_atualizada)
+            st.dataframe(tabela_db)
 
     elif paginaSelecionada == 'Ajustar Orçamento':
         with st.form(key="Orçamento"):
