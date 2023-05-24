@@ -132,27 +132,27 @@ def main():
 
     elif paginaSelecionada == 'Saldo Investimentos':
         with st.form(key="Orçamento"):      
-            data = st.date_input(emoji.emojize('Dia :calendar:'))
-            input_button_submit = st.form_submit_button('Enviar')
+            input_button_submit = st.form_submit_button('Ver Saldo')
 
         if input_button_submit:
 
             tabela_db = pd.read_sql('saldo_investimentos', con = db)
             tabela_db = tabela_db.sort_values('data', ascending=False)
 
-            saldo = tabela_db.loc[tabela_db.index[0], 'saldo']
+            saldo_atual = tabela_db.loc[tabela_db.index[0], 'saldo']
+            saldo_anterior = tabela_db.loc[tabela_db.index[1], 'saldo']
             kpi1, kpi2 = st.columns(2)
 
             # fill in those three columns with respective metrics or KPIs
             kpi1.metric(
                 label= emoji.emojize('Saldo Investimentos :money-mouth_face:'),
-                value=round(saldo),
-                delta=round(saldo) - 0,
+                value=f"R$ {round(saldo_atual)}",
+                delta=f"R$ {round(saldo_atual) - round(saldo_anterior)}"
             )
 
             kpi2.metric(
                 label= emoji.emojize('Última Atualização :calendar:'),
-                value=f"{data}"
+                value=f"{tabela_db.loc[tabela_db.index[0], 'data'].date()}"
             )
 
             fig, ax = plt.subplots()
